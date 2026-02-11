@@ -30,15 +30,6 @@ export default function MediaLibrary() {
     setUploading(true);
     try {
       const res = await api.importMedia(files);
-      const results = res.data;
-      
-      // Show duplicate warnings
-      const duplicates = results.filter((r: any) => r.duplicate.isDuplicate);
-      if (duplicates.length > 0) {
-        alert(`${duplicates.length} duplicate(s) detected. Check the console for details.`);
-        console.log('Duplicates:', duplicates);
-      }
-      
       await loadMedia();
     } catch (error) {
       console.error('Upload failed:', error);

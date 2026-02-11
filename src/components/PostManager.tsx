@@ -314,12 +314,20 @@ export default function PostManager() {
               <div className="conflicts-section">
                 <h4>
                   <AlertTriangle size={16} />
-                  Conflicts Detected
+                  Scheduling Conflict
                 </h4>
                 {conflicts.map((conflict, idx) => (
                   <div key={idx} className="warning-box">
-                    <strong>{conflict.type.replace(/_/g, ' ')}</strong>
                     <p>{conflict.message}</p>
+                    {conflict.conflictingPosts && conflict.conflictingPosts.length > 0 && (
+                      <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                        {conflict.conflictingPosts.map((post: any) => (
+                          <li key={post.id}>
+                            {post.account_name} - {post.platform_name}: {post.caption?.substring(0, 30) || 'No caption'}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </div>

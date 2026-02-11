@@ -1,5 +1,4 @@
 import { db } from '../db/database.js';
-import { computeFileHash, computePerceptualHash, areHashesSimilar } from '../utils/media.js';
 import path from 'path';
 import fs from 'fs';
 
@@ -11,60 +10,18 @@ export interface MediaAsset {
   mime_type: string;
   width: number | null;
   height: number | null;
-  hash: string;
-  perceptual_hash: string | null;
   imported_at: string;
   notes: string | null;
 }
 
-export interface DuplicateCheck {
-  isDuplicate: boolean;
-  exactMatch?: MediaAsset;
-  similarMatches?: MediaAsset[];
-}
-
 /**
- * Import media file(s) with duplicate detection
+ * Import media file(s) - simplified without duplicate detection
  */
 export async function importMedia(
   filePath: string,
   copyToUploads = true,
   uploadsDir = 'uploads'
-): Promise<{ asset: MediaAsset; duplicate: DuplicateCheck }> {
-  // Compute hashes
-  const fileHash = await computeFileHash(filePath);
-  const perceptualHash = await computePerceptualHash(filePath);
-
-  // Check for exact duplicate
-  const existingExact = db.prepare(
-    'SELECT * FROM media_assets WHERE hash = ?'
-  ).get(fileHash) as MediaAsset | undefined;
-
-  // Check for similar images (perceptual hash)
-  const similarMatches: MediaAsset[] = [];
-  if (perceptualHash) {
-    const allMedia = db.prepare(
-      'SELECT * FROM media_assets WHERE perceptual_hash IS NOT NULL'
-    ).all() as MediaAsset[];
-
-    for (const media of allMedia) {
-      if (media.perceptual_hash && areHashesSimilar(perceptualHash, media.perceptual_hash)) {
-        similarMatches.push(media);
-      }
-    }
-  }
-
-  const duplicate: DuplicateCheck = {
-    isDuplicate: !!existingExact || similarMatches.length > 0,
-    exactMatch: existingExact,
-    similarMatches: similarMatches.length > 0 ? similarMatches : undefined,
-  };
-
-  // If exact duplicate, return existing
-  if (existingExact) {
-    return { asset: existingExact, duplicate };
-  }
-
+): Promise<{ asset: MediaAsset }> {
   // Copy file to uploads if needed
   let finalPath = filePath;
   if (copyToUploads) {
@@ -86,13 +43,13 @@ export async function importMedia(
 
   // Insert new asset
   const result = db.prepare(`
-    INSERT INTO media_assets (file_path, file_name, file_size, mime_type, hash, perceptual_hash, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(finalPath, fileName, stats.size, getMimeType(fileName), fileHash, perceptualHash, null);
+    INSERT INTO media_assets (file_path, file_name, file_size, mime_type, notes)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(finalPath, fileName, stats.size, getMimeType(fileName), null);
 
   const asset = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(result.lastInsertRowid) as MediaAsset;
 
-  return { asset, duplicate };
+  return { asset };
 }
 
 /**

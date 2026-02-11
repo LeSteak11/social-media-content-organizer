@@ -94,53 +94,7 @@ export default function ConfigPanel() {
               <span>Warn about time conflicts</span>
             </label>
             <p className="help-text">
-              Show warning when posts are scheduled within 30 minutes of each other
-            </p>
-          </div>
-
-          <div className="config-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={config.warn_same_day_cross_account === 'true'}
-                onChange={(e) => handleUpdate('warn_same_day_cross_account', e.target.checked ? 'true' : 'false')}
-              />
-              <span>Warn about cross-account same-day posts</span>
-            </label>
-            <p className="help-text">
-              Show warning when same media appears on both accounts on the same day
-            </p>
-          </div>
-
-          <div className="config-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={config.allow_threads_ig_same_day === 'true'}
-                onChange={(e) => handleUpdate('allow_threads_ig_same_day', e.target.checked ? 'true' : 'false')}
-              />
-              <span>Allow Threads + Instagram same day</span>
-            </label>
-            <p className="help-text">
-              Allow same batch to be posted on Threads and Instagram on the same day
-            </p>
-          </div>
-
-          <div className="config-item">
-            <label htmlFor="min-days">
-              <span>Minimum days before reusing media/batch</span>
-            </label>
-            <input
-              id="min-days"
-              type="number"
-              min="0"
-              max="365"
-              value={config.min_days_before_reuse || '7'}
-              onChange={(e) => handleUpdate('min_days_before_reuse', e.target.value)}
-              className="number-input"
-            />
-            <p className="help-text">
-              Show warning when reusing media or batch within this many days
+              Show warning when posts are scheduled at the exact same time
             </p>
           </div>
         </section>

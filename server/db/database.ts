@@ -47,8 +47,6 @@ export function initDatabase() {
       mime_type TEXT,
       width INTEGER,
       height INTEGER,
-      hash TEXT NOT NULL,
-      perceptual_hash TEXT,
       imported_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       notes TEXT
     );
@@ -133,8 +131,6 @@ export function initDatabase() {
     -- Indices for performance
     CREATE INDEX IF NOT EXISTS idx_media_hash ON media_assets(hash);
     CREATE INDEX IF NOT EXISTS idx_media_perceptual_hash ON media_assets(perceptual_hash);
-    CREATE INDEX IF NOT EXISTS idx_posts_account_platform ON posts(account_id, platform_id);
-    CREATE INDEX IF NOT EXISTS idx_posts_scheduled_at ON posts(scheduled_at);
     CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
     CREATE INDEX IF NOT EXISTS idx_batch_media_batch ON batch_media(batch_id);
     CREATE INDEX IF NOT EXISTS idx_batch_media_media ON batch_media(media_id);
@@ -161,10 +157,7 @@ export function initDatabase() {
         ('timezone', 'America/Los_Angeles', 'Default timezone for scheduling'),
         ('warn_same_day_cross_account', 'true', 'Warn if same media appears on both accounts same day'),
         ('min_days_before_reuse', '7', 'Minimum days before reusing same asset/batch'),
-        ('allow_threads_ig_same_day', 'true', 'Allow same batch on Threads + IG on same day'),
-        ('warn_time_conflicts', 'true', 'Warn about overlapping scheduled times');
-    `);
-  }
+        ('allow
 
   console.log('Database initialized at:', dbPath);
 }

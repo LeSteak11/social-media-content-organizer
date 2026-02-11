@@ -5,12 +5,13 @@ import { Plus, Trash2, Edit2 } from 'lucide-react';
 import './BatchManager.css';
 
 export default function BatchManager() {
-  const { batches, setBatches, media, selectedMedia, clearSelections } = useStore();
+  const { batches, setBatches, media, selectedMedia, clearSelections, setSelectedBatches, setCurrentView, setCreatePostFromBatch } = useStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [batchName, setBatchName] = useState('');
   const [batchDescription, setBatchDescription] = useState('');
   const [batchTags, setBatchTags] = useState('');
+  const [lastCreatedBatchId, setLastCreatedBatchId] = useState<number | null>(null);
 
   useEffect(() => {
     loadBatches();
@@ -48,12 +49,15 @@ export default function BatchManager() {
 
     try {
       const tags = batchTags.split(',').map(t => t.trim()).filter(Boolean);
-      await api.createBatch({
+      const response = await api.createBatch({
         name: batchName,
         description: batchDescription || undefined,
         tags: tags.length > 0 ? tags : undefined,
         mediaIds: selectedMedia,
       });
+
+      const newBatchId = response.data.id;
+      setLastCreatedBatchId(newBatchId);
 
       setBatchName('');
       setBatchDescription('');
@@ -65,6 +69,15 @@ export default function BatchManager() {
       console.error('Failed to create batch:', error);
       alert('Failed to create batch');
     }
+  };
+
+  const handleCreatePostFromBatch = (batchId: number) => {
+    // Select the batch
+    setSelectedBatches([batchId]);
+    // Trigger post creation
+    setCreatePostFromBatch(batchId);
+    setCurrentView('posts');
+    setLastCreatedBatchId(null); // Clear the indicator
   };
 
   const handleDeleteBatch = async (id: number) => {
@@ -137,6 +150,19 @@ export default function BatchManager() {
               <span>{batch.media_count || 0} media items</span>
               <span>{new Date(batch.created_at).toLocaleDateString()}</span>
             </div>
+            <button
+              className="btn btn-primary"
+              style={{ marginTop: '8px', width: '100%' }}
+              onClick={() => handleCreatePostFromBatch(batch.id)}
+            >
+              <Plus size={16} />
+              Create Post from This Batch
+            </button>
+            {lastCreatedBatchId === batch.id && (
+              <div style={{ marginTop: '8px', padding: '8px', background: '#e8f5e9', borderRadius: '4px', fontSize: '12px' }}>
+                ✓ Batch created! Click above to schedule posts.
+              </div>
+            )}
           </div>
         ))}
       </div>

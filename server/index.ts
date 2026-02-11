@@ -32,9 +32,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Initialize database
-initDatabase();
-
 // ============= ACCOUNTS & PLATFORMS =============
 
 app.get('/api/accounts', (req, res) => {
@@ -266,8 +263,15 @@ app.post('/api/import', (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`API available at http://localhost:${PORT}/api`);
-});
+// Initialize and start server
+(async () => {
+  // Initialize database with backup
+  await initDatabase();
+  console.log('[Server] Database initialized with backup');
+
+  // Start server
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`API available at http://localhost:${PORT}/api`);
+  });
+})();

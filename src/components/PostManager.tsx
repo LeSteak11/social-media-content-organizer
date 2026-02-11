@@ -5,7 +5,7 @@ import { Plus, AlertTriangle, Calendar as CalendarIcon, Edit2, Trash2 } from 'lu
 import './PostManager.css';
 
 export default function PostManager() {
-  const { posts, accounts, platforms, selectedMedia, selectedBatches, clearSelections } = useStore();
+  const { posts, accounts, platforms, selectedMedia, selectedBatches, clearSelections, createPostFromBatch, setCreatePostFromBatch } = useStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -14,23 +14,61 @@ export default function PostManager() {
   // Form state
   const [accountId, setAccountId] = useState<number>(0);
   const [platformId, setPlatformId] = useState<number>(0);
-  const [status, setStatus] = useState<'draft' | 'scheduled' | 'posted' | 'archived'>('draft');
+  const [status, setStatus] = useState<'draft' | 'scheduled' | 'posted' | 'archived'>('scheduled'); // Default to scheduled
   const [caption, setCaption] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [notes, setNotes] = useState('');
 
+  // Helper function to get next 30-minute increment
+  const getNext30MinIncrement = () => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 30) * 30;
+    now.setMinutes(roundedMinutes);
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+    
+    // Format as datetime-local input value
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${mins}`;
+  };
+
   useEffect(() => {
     loadPosts();
+    
+    // Load last used account/platform from localStorage
+    const lastAccountId = localStorage.getItem('lastAccountId');
+    const lastPlatformId = localStorage.getItem('lastPlatformId');
+    
+    if (lastAccountId) setAccountId(parseInt(lastAccountId, 10));
+    if (lastPlatformId) setPlatformId(parseInt(lastPlatformId, 10));
   }, []);
 
   useEffect(() => {
+    // Set defaults if not already set
     if (accounts.length > 0 && accountId === 0) {
-      setAccountId(accounts[0].id);
+      const lastAccountId = localStorage.getItem('lastAccountId');
+      setAccountId(lastAccountId ? parseInt(lastAccountId, 10) : accounts[0].id);
     }
     if (platforms.length > 0 && platformId === 0) {
-      setPlatformId(platforms[0].id);
+      const lastPlatformId = localStorage.getItem('lastPlatformId');
+      setPlatformId(lastPlatformId ? parseInt(lastPlatformId, 10) : platforms[0].id);
     }
   }, [accounts, platforms]);
+
+  // Watch for batch-to-post trigger
+  useEffect(() => {
+    if (createPostFromBatch !== null) {
+      // Open create modal automatically
+      openCreateModal();
+      // Clear the trigger
+      setCreatePostFromBatch(null);
+    }
+  }, [createPostFromBatch]);
 
   const loadPosts = async () => {
     try {
@@ -77,6 +115,10 @@ export default function PostManager() {
     }
 
     try {
+      // Save last used account/platform
+      localStorage.setItem('lastAccountId', accountId.toString());
+      localStorage.setItem('lastPlatformId', platformId.toString());
+
       await api.createPost({
         accountId,
         platformId,
@@ -88,9 +130,24 @@ export default function PostManager() {
         batchIds: selectedBatches.length > 0 ? selectedBatches : undefined,
       });
 
-      resetForm();
-      setShowCreateModal(false);
+      // Clear form but keep account/platform/status for rapid creation
+      setCaption('');
+      setScheduledAt(getNext30MinIncrement()); // Reset to next increment
+      setNotes('');
+      setConflicts([]);
+      clearSelections();
+      
       await loadPosts();
+      
+      // Show success message
+      const successMsg = document.createElement('div');
+      successMsg.textContent = '✓ Post created successfully!';
+      successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 12px 24px; border-radius: 4px; z-index: 10000; font-size: 14px;';
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 2000);
+      
+      // Keep modal open for rapid multi-post creation
+      // User can close manually when done
     } catch (error) {
       console.error('Failed to create post:', error);
       alert('Failed to create post');
@@ -110,11 +167,12 @@ export default function PostManager() {
 
   const resetForm = () => {
     setCaption('');
-    setScheduledAt('');
+    setScheduledAt(getNext30MinIncrement()); // Set to next 30-min increment
     setNotes('');
-    setStatus('draft');
+    setStatus('scheduled'); // Keep default as scheduled
     setConflicts([]);
     clearSelections();
+    // Keep accountId and platformId (remembered from last use)
   };
 
   const openCreateModal = () => {

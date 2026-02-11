@@ -46,13 +46,22 @@ export function checkConflicts(post: {
 }
 
 /**
- * Check for time conflicts (posts scheduled at exact same time)
+ * Check for time conflicts (posts scheduled within configured time window on same platform)
+ * Default window is 15 minutes
  */
 function checkTimeConflicts(
   scheduledAt: string,
   platformId: number,
   excludePostId?: number
 ): any[] {
+  const config = getConfig();
+  const windowMinutes = parseInt(config.conflict_window_minutes || '15', 10);
+  
+  // Convert scheduledAt to a Date and calculate window bounds
+  const targetTime = new Date(scheduledAt);
+  const windowStart = new Date(targetTime.getTime() - windowMinutes * 60 * 1000);
+  const windowEnd = new Date(targetTime.getTime() + windowMinutes * 60 * 1000);
+
   const query = excludePostId
     ? db.prepare(`
         SELECT p.*, a.name as account_name, pl.display_name as platform_name
@@ -60,7 +69,7 @@ function checkTimeConflicts(
         JOIN accounts a ON p.account_id = a.id
         JOIN platforms pl ON p.platform_id = pl.id
         WHERE p.platform_id = ?
-          AND p.scheduled_at = ?
+          AND p.scheduled_at BETWEEN ? AND ?
           AND p.status IN ('draft', 'scheduled')
           AND p.id != ?
       `)
@@ -70,13 +79,13 @@ function checkTimeConflicts(
         JOIN accounts a ON p.account_id = a.id
         JOIN platforms pl ON p.platform_id = pl.id
         WHERE p.platform_id = ?
-          AND p.scheduled_at = ?
+          AND p.scheduled_at BETWEEN ? AND ?
           AND p.status IN ('draft', 'scheduled')
       `);
 
   const params = excludePostId
-    ? [platformId, scheduledAt, excludePostId]
-    : [platformId, scheduledAt];
+    ? [platformId, windowStart.toISOString(), windowEnd.toISOString(), excludePostId]
+    : [platformId, windowStart.toISOString(), windowEnd.toISOString()];
 
   return query.all(...params);
 }

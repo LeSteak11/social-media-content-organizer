@@ -9,6 +9,7 @@ interface AppState {
   selectedMedia: number[];
   selectedBatches: number[];
   currentView: 'media' | 'batches' | 'posts' | 'calendar' | 'config';
+  createPostFromBatch: number | null; // Batch ID to create post from
   
   setAccounts: (accounts: any[]) => void;
   setPlatforms: (platforms: any[]) => void;
@@ -21,6 +22,7 @@ interface AppState {
   toggleBatchSelection: (id: number) => void;
   clearSelections: () => void;
   setCurrentView: (view: AppState['currentView']) => void;
+  setCreatePostFromBatch: (batchId: number | null) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -32,6 +34,7 @@ export const useStore = create<AppState>((set) => ({
   selectedMedia: [],
   selectedBatches: [],
   currentView: 'media',
+  createPostFromBatch: null,
 
   setAccounts: (accounts) => set({ accounts }),
   setPlatforms: (platforms) => set({ platforms }),
@@ -55,4 +58,5 @@ export const useStore = create<AppState>((set) => ({
   
   clearSelections: () => set({ selectedMedia: [], selectedBatches: [] }),
   setCurrentView: (view) => set({ currentView: view }),
+  setCreatePostFromBatch: (batchId) => set({ createPostFromBatch: batchId }),
 }));

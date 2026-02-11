@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { createBackup } from '../utils/backup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +19,9 @@ export const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
 // Initialize schema
-export function initDatabase() {
+export async function initDatabase() {
+  // Create backup before initialization
+  await createBackup();
   db.exec(`
     -- Accounts table
     CREATE TABLE IF NOT EXISTS accounts (
@@ -155,9 +158,9 @@ export function initDatabase() {
 
       INSERT INTO config (key, value, description) VALUES
         ('timezone', 'America/Los_Angeles', 'Default timezone for scheduling'),
-        ('warn_same_day_cross_account', 'true', 'Warn if same media appears on both accounts same day'),
-        ('min_days_before_reuse', '7', 'Minimum days before reusing same asset/batch'),
-        ('allow
+        ('warn_time_conflicts', 'true', 'Warn about time-based conflicts on same platform'),
+        ('conflict_window_minutes', '15', 'Time window in minutes for conflict detection');
+    `);
 
   console.log('Database initialized at:', dbPath);
 }
